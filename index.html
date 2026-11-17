@@ -3068,8 +3068,9 @@ function startFall(cv) {
 }
 
 // ---------------- 오늘 다녀간 사람들 ----------------
+var CARD_VIEW = false;                                            // 폰에서 QR로 연 카드일 때 true
 function crowd(me) {
-  if (typeof Kiosk !== 'undefined' && Kiosk.on) {                 // 설치 모드 : 실제로 다녀간 사람들의 1분
+  if (!CARD_VIEW) {                                              // 이 화면(모니터)에서 실제로 체험한 사람들의 1분
     const log = loadLog(me.date).slice(0, Math.max(0, me.n - 1));
     const list = [];
     const r = rng(hash(me.date + 'past'));                        // 오늘 사람이 적을 때 : 어제까지 쌓인 옅은 심재 위에 오늘의 테가 감긴다
@@ -3713,7 +3714,7 @@ const Thread = (() => {
 
 // ================= 설치용 설정 (여기 숫자만 바꾸면 됩니다) =================
 const CONFIG = {
-  CARD_URL: '',          // 폰 카드 주소. GitHub Pages 에서 열면 자동으로 그 주소를 씁니다. 내 컴퓨터의 파일로 열 때만 직접 넣으세요. 예: 'https://아이디.github.io/time-rings/'
+  CARD_URL: 'https://tjkqls.github.io/time-rings/',          // 폰 카드 주소. GitHub Pages 에서 열면 자동으로 그 주소를 씁니다. 내 컴퓨터의 파일로 열 때만 직접 넣으세요. 예: 'https://아이디.github.io/time-rings/'
   BAUD: 115200,          // 아두이노와 같은 속도
   GAIN: 2.0,             // 손 떨림이 결에 새겨지는 세기. 결이 너무 밋밋하면 올리고, 너무 거칠면 내리세요
   RELEASE_MS: 350,       // 손을 뗐다고 보기까지 기다리는 시간 (ms)
@@ -3726,7 +3727,7 @@ const CONFIG = {
 const LOG_PREFIX = 'time-rings-log-';
 function loadLog(date) { try { return JSON.parse(localStorage.getItem(LOG_PREFIX + date) || '[]'); } catch (e) { return []; } }
 function saveLog(date, list) { try { localStorage.setItem(LOG_PREFIX + date, JSON.stringify(list)); } catch (e) {} }
-function todayCount() { return Kiosk.on ? loadLog(today()).length : 19; }
+function todayCount() { return loadLog(today()).length; }
 
 // ---------------- 아두이노 연결 (Chrome의 Web Serial) ----------------
 // 아두이노가 보내는 줄 : T,<번호>,<센서값>,<기준값>,<닿음 0/1>
@@ -3855,7 +3856,7 @@ function show(name) {
   if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
   window.scrollTo(0, 0);
   if (name === 'ring') { if (!state.me) state.me = makeMe(47, [8, 58, 4, 3, 17, 6, 2, 2]); drawCard(); Kiosk.ringShown(); }
-  if (name === 'start' && Kiosk.on && setupDone) refreshStart();
+  if (name === 'start' && setupDone) refreshStart();
 }
 
 function makeMe(m, mix) {
@@ -4027,7 +4028,7 @@ function setup() {
   document.getElementById('m-retry').onclick = resetMinute;
   document.getElementById('go-ring').onclick = () => {
     state.me = makeMe(state.m, state.mix); state.example = false;
-    if (Kiosk.on && state.m != null) { const log = loadLog(today()); log.push({ m: state.m, mix: state.mix, q: state.q, t: Date.now() }); saveLog(today(), log); state.m = null; }
+    if (state.m != null) { const log = loadLog(today()); log.push({ m: state.m, mix: state.mix, q: state.q, t: Date.now() }); saveLog(today(), log); state.m = null; }
     state.onlyMine = false; setSeg(); show('ring');
   };
 
@@ -4053,7 +4054,7 @@ function setup() {
   });
   setupDone = true;
   const fromUrl = readParams();
-  if (fromUrl) { state.me = fromUrl; state.example = false; state.fromUrl = true; show('ring'); return; }
+  if (fromUrl) { state.me = fromUrl; state.example = false; state.fromUrl = true; CARD_VIEW = true; show('ring'); return; }
   const h = location.hash.slice(1);
   show(['start', 'minute', 'ring'].includes(h) ? h : 'start');
 }
